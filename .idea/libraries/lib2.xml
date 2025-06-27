@@ -1,0 +1,15 @@
+<component name="libraryTable">
+  <library name="lib2">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/__MACOSX/nand2tetris/tools/bin/lib/._SimulatorsGUI.jar!/" />
+      <root url="jar://$PROJECT_DIR$/__MACOSX/nand2tetris/tools/bin/lib/._AssemblerGUI.jar!/" />
+      <root url="jar://$PROJECT_DIR$/__MACOSX/nand2tetris/tools/bin/lib/._Simulators.jar!/" />
+      <root url="jar://$PROJECT_DIR$/__MACOSX/nand2tetris/tools/bin/lib/._HackGUI.jar!/" />
+      <root url="jar://$PROJECT_DIR$/__MACOSX/nand2tetris/tools/bin/lib/._Hack.jar!/" />
+      <root url="jar://$PROJECT_DIR$/__MACOSX/nand2tetris/tools/bin/lib/._TranslatorsGUI.jar!/" />
+      <root url="jar://$PROJECT_DIR$/__MACOSX/nand2tetris/tools/bin/lib/._Compilers.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

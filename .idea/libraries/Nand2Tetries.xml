@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="Nand2Tetries">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/project0.zip!/" />
+      <root url="jar://$PROJECT_DIR$/Project5.zip!/" />
+      <root url="jar://$PROJECT_DIR$/Project2.zip!/" />
+      <root url="jar://$PROJECT_DIR$/Project3.zip!/" />
+      <root url="jar://$PROJECT_DIR$/Project4.zip!/" />
+      <root url="jar://$PROJECT_DIR$/project1.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
