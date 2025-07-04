@@ -4,15 +4,13 @@ import java.io.IOException;
 class CodeWriter implements AutoCloseable {
     private final FileWriter writer;
     private String fileName;
-    private int symbolIndex = 0;
-    private int retIndex = 0;
-    private String curFunc = "";
-
+    private int labelCounter = 0;
+    private String currFunc;
     public CodeWriter(String outputFile) throws IOException {
+        this.currFunc = "";
         this.writer = new FileWriter(outputFile);
-        // Bootstrap code
         writer.write("@256\nD=A\n@SP\nM=D\n");
-        writer.write("@Sys.init\n0;JMP\n");
+        writeCall("Sys.init",0);
     }
 
     public void setFileName(String fileName) {
@@ -48,21 +46,26 @@ class CodeWriter implements AutoCloseable {
     }
 
     private String createComparisonAssembly(String command) {
-        String jumpType = command.equals("eq") ? "JEQ" :
+        String jumpInstruction = command.equals("eq") ? "JEQ" :
                 command.equals("gt") ? "JGT" : "JLT";
-        String label = command + "_" + symbolIndex++;
+        String label = "COMP_" + labelCounter++;
         return "@SP\n" +
                 "AM=M-1\n" +
                 "D=M\n" +
                 "A=A-1\n" +
                 "D=M-D\n" +
-                "M=-1\n" +
                 "@" + label + "\n" +
-                "D;" + jumpType + "\n" +
+                "D;" + jumpInstruction + "\n" +
                 "@SP\n" +
                 "A=M-1\n" +
                 "M=0\n" +
-                "(" + label + ")\n";
+                "@END_" + label + "\n" +
+                "0;JMP\n" +
+                "(" + label + ")\n" +
+                "@SP\n" +
+                "A=M-1\n" +
+                "M=-1\n" +
+                "(END_" + label + ")\n";
     }
 
     public void writePushPop(String command, String segment, int index) throws IOException {
@@ -109,77 +112,77 @@ class CodeWriter implements AutoCloseable {
             }
         }
     }
-
-    public void writeLabel(String label) throws IOException {
+    public void writeLabel(String label) throws IOException{
         writer.write("(" + getFullLabel(label) + ")\n");
     }
-
-    public void writeGoto(String label) throws IOException {
-        writer.write("@" + getFullLabel(label) + "\n0;JMP\n");
+    public void writeGoto(String label) throws IOException{
+        writer.write("@" + getFullLabel(label) +"\n0;JMP\n");
     }
-
-    public void writeIf(String label) throws IOException {
+    public void writeIf(String label) throws IOException{
         writer.write("@SP\nAM=M-1\nD=M\n@" + getFullLabel(label) + "\nD;JNE\n");
     }
-
-    public void writeFunction(String functionName, int nVars) throws IOException {
-        curFunc = functionName;
-        writer.write("(" + functionName + ")\n");
-        for (int i = 0; i < nVars; i++) {
-            writer.write("@SP\nA=M\nM=0\n@SP\nM=M+1\n");
-        }
+    public void writeFuntion(String functionName, int nVars) throws IOException{
+       currFunc = functionName;
+       writer.write("(" + functionName + ")\n");
+       for(int i=0;i<nVars;i++){
+           writer.write("@SP\nA=M\nM=0\n@SP\nM=M+1");
+       }
     }
-
-    public void writeCall(String functionName, int nArgs) throws IOException {
-        String returnLabel = "RETURN_" + functionName + "_" + retIndex++;
-        // 推送返回地址
+    public void writeCall(String functionName, int nArgs) throws IOException{
+        String returnLabel = "RETURN_" + labelCounter++;
         writer.write("@" + returnLabel + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n");
-        // 推送LCL, ARG, THIS, THAT
-        for (String reg : new String[]{"LCL", "ARG", "THIS", "THAT"}) {
-            writer.write("@" + reg + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n");
-        }
-        // ARG = SP-nArgs-5
-        writer.write("@" + (nArgs + 5) + "\nD=A\n@SP\nD=M-D\n@ARG\nM=D\n");
-        // LCL = SP
+        writer.write("@LCL\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n");
+        writer.write("@ARG\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n");
+        writer.write("@THIS\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n");
+        writer.write("@THAT\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n");
+        writer.write("@SP\nD=M\n@5\nD=D-A\n@" + nArgs + "\nD=D-A\n@ARG\nM=D\n");
         writer.write("@SP\nD=M\n@LCL\nM=D\n");
-        // 跳转到函数
         writer.write("@" + functionName + "\n0;JMP\n");
-        // 返回标签
         writer.write("(" + returnLabel + ")\n");
     }
-
-    public void writeReturn() throws IOException {
-        // FRAME = LCL
-        writer.write("@LCL\nD=M\n@R13\nM=D\n");  // R13作为临时存储
-        // RET = *(FRAME-5)
-        writer.write("@5\nA=D-A\nD=M\n@R14\nM=D\n");  // R14存储返回地址
-        // *ARG = pop()
+    public void writeReturn() throws IOException{
+        writer.write("@LCL\nD=M\n@R13\nM=D\n");
+        writer.write("@5\nA=D-A\nD=M\n@R14\nM=D");
         writer.write("@SP\nAM=M-1\nD=M\n@ARG\nA=M\nM=D\n");
-        // SP = ARG+1
         writer.write("@ARG\nD=M+1\n@SP\nM=D\n");
-        // 恢复THAT, THIS, ARG, LCL
         writer.write("@R13\nAM=M-1\nD=M\n@THAT\nM=D\n");
         writer.write("@R13\nAM=M-1\nD=M\n@THIS\nM=D\n");
         writer.write("@R13\nAM=M-1\nD=M\n@ARG\nM=D\n");
         writer.write("@R13\nAM=M-1\nD=M\n@LCL\nM=D\n");
-        // 跳转到返回地址
         writer.write("@R14\nA=M\n0;JMP\n");
     }
-
     private String pushFromSegment(String segment, int index) {
         String base = getBaseAddress(segment);
-        return "@" + index + "\nD=A\n@" + base + "\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n";
+        return "@" + base + "\n" +
+                "D=M\n" +
+                "@" + index + "\n" +
+                "A=D+A\n" +
+                "D=M\n" +
+                "@SP\n" +
+                "A=M\n" +
+                "M=D\n" +
+                "@SP\n" +
+                "M=M+1\n";
     }
 
     private String popToSegment(String segment, int index) {
         String base = getBaseAddress(segment);
-        return "@" + index + "\nD=A\n@" + base + "\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n";
+        return "@" + base + "\n" +
+                "D=M\n" +
+                "@" + index + "\n" +
+                "D=D+A\n" +
+                "@R13\n" +
+                "M=D\n" +
+                "@SP\n" +
+                "AM=M-1\n" +
+                "D=M\n" +
+                "@R13\n" +
+                "A=M\n" +
+                "M=D\n";
     }
-
-    private String getFullLabel(String label) {
-        return curFunc.isEmpty() ? label : curFunc + "$" + label;
+    private String getFullLabel(String label){
+        return currFunc.isEmpty()?label:currFunc + "$" + label;
     }
-
     private String getBaseAddress(String segment) {
         switch (segment) {
             case "local": return "LCL";
@@ -189,6 +192,7 @@ class CodeWriter implements AutoCloseable {
             default: throw new IllegalArgumentException("Invalid segment: " + segment);
         }
     }
+
 
     @Override
     public void close() throws IOException {

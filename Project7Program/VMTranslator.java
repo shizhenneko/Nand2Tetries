@@ -68,7 +68,7 @@ public class VMTranslator {
                             codeWriter.writeIf(parser.arg1());
                             break;
                         case CommandType.C_FUNCTION:
-                            codeWriter.writeFunction(parser.arg1(),parser.arg2());
+                            codeWriter.writeFuntion(parser.arg1(),parser.arg2());
                             break;
                         case CommandType.C_CALL:
                             codeWriter.writeCall(parser.arg1(),parser.arg2());
